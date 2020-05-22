@@ -1,0 +1,4 @@
+---
+- hosts: all
+  roles:
+    - { role: azurearc, become: yes }

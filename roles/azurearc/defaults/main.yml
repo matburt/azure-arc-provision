@@ -1,0 +1,13 @@
+---
+ubuntu_version_actual: "{{ ansible_distribution_major_version }}.{{ ansible_distribution_minor_version }}"
+ubuntu_repo_package: "https://packages.microsoft.com/config/ubuntu/{{ ubuntu_version_actual }}/packages-microsoft-prod.deb"
+
+redhat_version_actual: "{{ rhel/7 }}"
+redhat_repo_package: "https://packages.microsoft.com/config/{{ redhat_version_actual }}/packages-microsoft-prod.rpm"
+
+azure_resource_group: ""
+azure_tenant: "{{ lookup('env', 'AZURE_TENANT') }}"
+azure_region: ""
+azure_subscription_id: "{{ lookup('env', 'AZURE_SUBSCRIPTION_ID') }}"
+azure_service_principal_id: "{{ lookup('env', 'AZURE_CLIENT_ID') }}"
+azure_service_principal_secret: "{{ lookup('env', 'AZURE_SECRET') }}"

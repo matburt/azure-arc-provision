@@ -1,0 +1,75 @@
+---
+- name: Check Distributions
+  fail:
+    msg: "Incompatible Linux distribution {{ ansible_distribution }}"
+  when: ansible_distribution not in ["Ubuntu", "RedHat", "CentOS"]
+
+- name: Check Tenant Setting
+  fail:
+    msg: "Azure Tenant must be defined as azure_tenant or AZURE_TENANT environment variable"
+  when: azure_tenant == ""
+
+- name: Check Resource Group Setting
+  fail:
+    msg: "Azure Resource Group must be defined as azure_resource_group"
+  when: azure_resource_group == ""
+
+- name: Check Region Setting
+  fail:
+    msg: "Azure Region must be defined as azure_region"
+  when: azure_region == ""
+
+- name: Check Subscription ID Setting
+  fail:
+    msg: "Azure Subscription ID must be defined as azure_subscription_id or AZURE_SUBSCRIPTION_ID environment variable"
+  when: azure_subscription_id == ""
+
+- name: Check Service Principal Id
+  fail:
+    msg: "Azure Service Principal ID must be defined as azure_service_principal_id or AZURE_SERVICE_PRINCIPAL_ID environment variable"
+  when: azure_service_principal_id == ""
+
+- name: Check Service Principal Secret
+  fail:
+    msg: "Azure Service Principal Secret must be defined as azure_service_principal_secret or AZURE_SECRET environment variable"
+  when: azure_service_principal_secret == ""
+
+- block:
+    - name: Check Ubuntu Version
+      fail:
+        msg: "Unsupported Distribution Version {{ ansible_distribution_major_version }}.{{ ansible_distribution_minor_version }}"
+      when: ansible_distribution_major_version not in ["16", "18"]
+    - name: Install Ubuntu Packages
+      apt:
+        deb: "{{ ubuntu_repo_package }}"
+  when: ansible_distribution in ["Ubuntu"]
+
+- block:
+    - name: Check CentOS/RHEL version
+      fail:
+        msg: "Unsupported Distribution Version {{ ansible_distribution_major_version }}.{{ ansible_distribution_minor_version }}"
+      when: ansible_distribution_major_version not in ["7", "8"]
+    - name: Set RHEL path
+      set_fact:
+        redhat_version_actual: "rhel/7"
+      when: ansible_distribution in ["RedHat"]
+    - name: Set CentOS path
+      set_fact:
+        redhat_version_actual: "centos/7"
+      when: ansible_distribution in ["CentOS"]
+    - name: Add Yum Repository
+      yum:
+        name: "{{ redhat_repo_package }}"
+        state: present
+  when: ansible_distribution in ["RedHat", "CentOS"]
+
+- name: Install azcmagent
+  package:
+    name: azcmagent
+    state: latest
+
+- name: Use azcmagent to provision system in ARC
+  shell: "azcmagent connect --resource-group {{ azure_resource_group }} --tenant-id {{ azure_tenant }} --location {{ azure_region }} --subscription-id {{ azure_subscription_id }} --service-principal-id {{ azure_service_principal_id }} --service-principal-secret {{ azure_service_principal_secret }}"
+  register: azcres
+  failed_when: azcres.rc != 0 and "is already onboarded" not in azcres.stdout
+  changed_when: azcres.rc == 0
